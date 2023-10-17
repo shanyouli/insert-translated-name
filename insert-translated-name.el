@@ -65,6 +65,10 @@
 
 ;;; Change log:
 ;;
+;; 2023/10/17
+;;      * add deeplx engine.
+;;
+;;
 ;; 2023/07/02
 ;;      * Remove `deno-bridge' dependence.
 ;;
@@ -154,6 +158,16 @@
 
 (defcustom insert-translated-name-crow-engine "google"
   "the crow app engine"
+  :group 'insert-translated-name
+  :type 'string)
+
+(defcustom insert-translated-name-translate-engine "crow"
+  "THe translate engine can use \"crow\" or \"deeplx\" or \"caiyun\"."
+  :group 'insert-translated-name
+  :type 'string)
+
+(defcustom insert-translated-name-deeplx-url "http://127.0.0.1:1188/translate"
+  "Default deeplx URL"
   :group 'insert-translated-name
   :type 'string)
 
@@ -415,12 +429,20 @@
          insert-translated-name-placeholder)
         ))))
 
+(defun insert-translated-name-retrieve-translation (word style placeholder)
+  (cond ((string-equal insert-translated-name-translate-engine "crow")
+         (insert-translated-name-crow-retrieve-translation word style placeholder))
+        ((string-equal insert-translated-name-translate-engine "deeplx")
+         (insert-translated-name-deeplx-retrieve-translation word style placeholder))
+        ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; crow API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defvar insert-translated-name-word nil)
 (defvar insert-translated-name-style nil)
 (defvar insert-translated-name-buffer-name nil)
 (defvar insert-translated-name-placeholder nil)
 
-(defun insert-translated-name-retrieve-translation (word style placeholder)
+(defun insert-translated-name-crow-retrieve-translation (word style placeholder)
   (setq insert-translated-name-word word)
   (setq insert-translated-name-style style)
   (setq insert-translated-name-buffer-name (buffer-name))
@@ -432,6 +454,36 @@
                   " *insert-translated-name*"
                   "crow" "-t" "en" "--json" "-e" insert-translated-name-crow-engine word)))
     (set-process-sentinel process 'insert-translated-name-process-sentinel)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Deeplx API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun insert-translated-name-deeplx-retrieve-callback (&optional redirect word style insert-buffer placeholder)
+  (let (json word translation result)
+    ;; Get translation.
+    (set-buffer-multibyte t)
+    (goto-char (point-min))
+    (when (not (string-match "200 OK" (buffer-string)))
+      (error "Problem connecting to the server"))
+    (re-search-forward "^$" nil 'move)
+    (setq json (json-read-from-string
+                (buffer-substring-no-properties (point) (point-max))))
+    (kill-buffer (current-buffer))
+    ;; (setq translation (elt (assoc-default 'alternatives json) 0))
+    (setq translation (assoc-default 'data json))
+
+    ;; Insert result with placeholder point.
+    (insert-translated-name-update-translation-in-buffer word style translation insert-buffer placeholder)))
+
+(defun insert-translated-name-deeplx-retrieve-translation (word style placeholder)
+  (let ((url-request-data (encode-coding-string
+                           (json-encode `(:source_lang "ZH" :target_lang "EN" :text ,word))
+                           'utf-8))
+        (url-request-method "POST")
+        (url-request-extra-headers '(("Content-Type" . "application/json; charset=utf-8"))))
+    (url-retrieve  insert-translated-name-deeplx-url
+                   'insert-translated-name-deeplx-retrieve-callback
+                   (list word style (current-buffer) placeholder))))
+
 
 (provide 'insert-translated-name)
 

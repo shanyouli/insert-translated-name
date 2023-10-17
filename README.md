@@ -32,7 +32,6 @@
 (add-to-list 'load-path (expand-file-name "~/elisp"))
 (require 'insert-translated-name)
 ```
-
 ### 使用
 | 命令                                               | 描述                                       |
 | :--------                                          | :----                                      |
@@ -79,3 +78,8 @@
                ))
   (add-hook hook '(lambda () (insert-translated-name-use-original-translation))))
 ```
+#### 可选(deeplx)
+由于crow-translate不支持macos， 我添加了使用 [deeplx](https://github.com/OwO-Network/DeepLX) 进行翻译的方法
+1. 安装并在后台启动 deeplx
+2. 修改 ```insert-translated-name-translate-engine``` 的值为 "deeplx"
+3. 如果你启动时，修改了deeplx的端口或服务地址 ，请自定义 ```insert-translated-name-deeplx-url```
