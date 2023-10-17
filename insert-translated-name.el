@@ -67,7 +67,7 @@
 ;;
 ;; 2023/10/17
 ;;      * add deeplx engine.
-;;
+;;      * add translate-shell engine.
 ;;
 ;; 2023/07/02
 ;;      * Remove `deno-bridge' dependence.
@@ -162,12 +162,17 @@
   :type 'string)
 
 (defcustom insert-translated-name-translate-engine "crow"
-  "THe translate engine can use \"crow\" or \"deeplx\" or \"caiyun\"."
+  "THe translate engine can use \"crow\" or \"deeplx\" or \"trans\"."
   :group 'insert-translated-name
   :type 'string)
 
 (defcustom insert-translated-name-deeplx-url "http://127.0.0.1:1188/translate"
   "Default deeplx URL"
+  :group 'insert-translated-name
+  :type 'string)
+
+(defcustom insert-translated-name-trans-command "trans -brief -t en %s"
+  "The translate-shell command use brief optional"
   :group 'insert-translated-name
   :type 'string)
 
@@ -434,6 +439,8 @@
          (insert-translated-name-crow-retrieve-translation word style placeholder))
         ((string-equal insert-translated-name-translate-engine "deeplx")
          (insert-translated-name-deeplx-retrieve-translation word style placeholder))
+        ((string-equal insert-translated-name-translate-engine "trans")
+         (insert-translated-name-trans-retrieve-translation word style placeholder))
         ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; crow API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -484,6 +491,11 @@
                    'insert-translated-name-deeplx-retrieve-callback
                    (list word style (current-buffer) placeholder))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;; trans API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun insert-translated-name-trans-retrieve-translation (word style placeholder)
+  (let* ((output (shell-command-to-string (format insert-translated-name-trans-command (shell-quote-argument word))))
+         (result (substring output 0 (string-match "\n" output))))
+    (insert-translated-name-update-translation-in-buffer word style result (buffer-name) placeholder)))
 
 (provide 'insert-translated-name)
 

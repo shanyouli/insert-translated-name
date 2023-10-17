@@ -78,8 +78,15 @@
                ))
   (add-hook hook '(lambda () (insert-translated-name-use-original-translation))))
 ```
-#### 可选(deeplx)
+#### 其他可用引擎
+
+##### deeplx
 由于crow-translate不支持macos， 我添加了使用 [deeplx](https://github.com/OwO-Network/DeepLX) 进行翻译的方法
 1. 安装并在后台启动 deeplx
 2. 修改 ```insert-translated-name-translate-engine``` 的值为 "deeplx"
 3. 如果你启动时，修改了deeplx的端口或服务地址 ，请自定义 ```insert-translated-name-deeplx-url```
+
+#### trans
+1. 安装[translate shell](https://github.com/soimort/translate-shell/)
+2. 修改 ```insert-translated-name-translate-engine``` 的值为 "trans"
+3. 其他配置项 ```insert-translated-name-trans-command``` 指定trans命令位置
