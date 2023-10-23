@@ -65,6 +65,9 @@
 
 ;;; Change log:
 ;;
+;; 2023/10/23
+;;      * add libretranslate engine.
+;;
 ;; 2023/10/17
 ;;      * add deeplx engine.
 ;;      * add translate-shell engine.
@@ -173,6 +176,11 @@
 
 (defcustom insert-translated-name-trans-command "trans -brief -t en %s"
   "The translate-shell command use brief optional"
+  :group 'insert-translated-name
+  :type 'string)
+
+(defcustom insert-translated-name-libretranslate-url "http://127.0.0.1:5000/translate"
+  "Default libreTranslate URL"
   :group 'insert-translated-name
   :type 'string)
 
@@ -441,6 +449,8 @@
          (insert-translated-name-deeplx-retrieve-translation word style placeholder))
         ((string-equal insert-translated-name-translate-engine "trans")
          (insert-translated-name-trans-retrieve-translation word style placeholder))
+        ((string-equal insert-translated-name-translate-engine "libretranslate")
+         (insert-translated-name-libretranslate-retrieve-translation word style placeholder))
         ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; crow API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -466,19 +476,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Deeplx API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun insert-translated-name-deeplx-retrieve-callback (&optional redirect word style insert-buffer placeholder)
   (let (json word translation result)
-    ;; Get translation.
+    ;; get translation.
     (set-buffer-multibyte t)
     (goto-char (point-min))
-    (when (not (string-match "200 OK" (buffer-string)))
-      (error "Problem connecting to the server"))
+    (when (not (string-match "200 ok" (buffer-string)))
+      (error "problem connecting to the server"))
     (re-search-forward "^$" nil 'move)
     (setq json (json-read-from-string
                 (buffer-substring-no-properties (point) (point-max))))
     (kill-buffer (current-buffer))
     ;; (setq translation (elt (assoc-default 'alternatives json) 0))
     (setq translation (assoc-default 'data json))
-
-    ;; Insert result with placeholder point.
+    ;; insert result with placeholder point.
     (insert-translated-name-update-translation-in-buffer word style translation insert-buffer placeholder)))
 
 (defun insert-translated-name-deeplx-retrieve-translation (word style placeholder)
@@ -496,6 +505,35 @@
   (let* ((output (shell-command-to-string (format insert-translated-name-trans-command (shell-quote-argument word))))
          (result (substring output 0 (string-match "\n" output))))
     (insert-translated-name-update-translation-in-buffer word style result (buffer-name) placeholder)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; trans API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun insert-translated-name-libretranslate-retrieve-callback (&optional redirect word style insert-buffer placeholder)
+  (let (json word translation result)
+    ;; get translation.
+    (set-buffer-multibyte t)
+    (goto-char (point-min))
+    (when (not (string-match "200 ok" (buffer-string)))
+      (error "problem connecting to the server"))
+    (re-search-forward "^$" nil 'move)
+    (setq json (json-read-from-string
+                (buffer-substring-no-properties (point) (point-max))))
+    (kill-buffer (current-buffer))
+    ;; (setq translation (elt (assoc-default 'alternatives json) 0))
+    (setq translation (assoc-default 'translatedText json))
+    (unless translation (error "Translation failed, please check for errors"))
+    ;; insert result with placeholder point.
+    (insert-translated-name-update-translation-in-buffer word style translation insert-buffer placeholder)))
+
+(defun insert-translated-name-libretranslate-retrieve-translation (word style placeholder)
+  (let ((url-request-data (encode-coding-string
+                           (json-encode `(:source "zh" :target "en" :q ,word))
+                           'utf-8))
+        (url-request-method "POST")
+        (url-request-extra-headers '(("Content-Type" . "application/json; charset=utf-8"))))
+    (url-retrieve  insert-translated-name-libretranslate-url
+                   'insert-translated-name-libretranslate-retrieve-callback
+                   (list word style (current-buffer) placeholder))))
+
 
 (provide 'insert-translated-name)
 

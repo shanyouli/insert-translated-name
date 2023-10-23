@@ -90,3 +90,10 @@
 1. 安装[translate shell](https://github.com/soimort/translate-shell/)
 2. 修改 ```insert-translated-name-translate-engine``` 的值为 "trans"
 3. 其他配置项 ```insert-translated-name-trans-command``` 指定trans命令位置
+
+#### [libretranslate](https://github.com/LibreTranslate/LibreTranslate)
+1. 安装： ```pip install libretranslate```
+2. 启动: ```libretranslate --load-only "zh,en"``` , 仅下载zh，en这两个模型
+3. 修改 ```insert-translated-name-translate-engine``` 的值为 "libretranslate"
+4. 其他配置项: ```insert-translated-name-libretranslate-url``` , libretranslate启动路径
+
